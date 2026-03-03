@@ -1,0 +1,54 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "tramites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "zonaOrigen", "order": "ASCENDING" },
+        { "fieldPath": "fechaCreacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tramites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "zonaOrigen", "order": "ASCENDING" },
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "fechaCreacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tramites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "zonaDestino", "order": "ASCENDING" },
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "fechaCreacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tramites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "zonaDestino", "order": "ASCENDING" },
+        { "fieldPath": "fechaCreacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tramites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "fechaCreacion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "historial",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ═══════════════════════════════════════════════
+    //  FUNCIONES AUXILIARES
+    // ═══════════════════════════════════════════════
+    
+    // Verificar que el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Obtener datos del usuario desde la colección 'usuarios'
+    function getUserData() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data;
+    }
+    
+    // Verificar que el usuario está aprobado
+    function isApproved() {
+      return isAuthenticated() && getUserData().aprobado == true;
+    }
+    
+    // Verificar rol del usuario
+    function hasRole(role) {
+      return isApproved() && getUserData().rol == role;
+    }
+    
+    // Verificar si es admin o inspector (roles globales)
+    function isGlobal() {
+      return isApproved() && (getUserData().rol == 'admin' || getUserData().rol == 'inspector');
+    }
+    
+    // Verificar si el usuario pertenece a una zona específica
+    function isFromZona(zona) {
+      return isApproved() && getUserData().zona == zona;
+    }
+    
+    // ═══════════════════════════════════════════════
+    //  COLECCIÓN: usuarios
+    // ═══════════════════════════════════════════════
+    match /usuarios/{email} {
+      // Cualquier autenticado puede leer su propio documento
+      allow read: if isAuthenticated() && request.auth.token.email == email;
+      
+      // Admins pueden leer cualquier usuario
+      allow read: if isAuthenticated() && hasRole('admin');
+      
+      // Permitir creación durante el registro
+      allow create: if isAuthenticated() && request.auth.token.email == email;
+      
+      // Solo admins pueden actualizar usuarios (aprobar, cambiar rol)
+      allow update: if isAuthenticated() && hasRole('admin');
+      
+      // Solo admins pueden eliminar usuarios
+      allow delete: if isAuthenticated() && hasRole('admin');
+    }
+    
+    // ═══════════════════════════════════════════════
+    //  COLECCIÓN: tramites
+    // ═══════════════════════════════════════════════
+    match /tramites/{tramiteId} {
+      
+      // LECTURA:
+      // - Admin/Inspector: pueden ver todo
+      // - Secretario: solo trámites de su zona (origen o destino)
+      allow read: if isGlobal() ||
+        (isApproved() && (
+          resource.data.zonaOrigen == getUserData().zona ||
+          resource.data.zonaDestino == getUserData().zona
+        ));
+      
+      // CREACIÓN:
+      // - Admin/Inspector: pueden crear cualquier trámite
+      // - Secretario: solo puede crear trámites donde zonaOrigen = su zona
+      allow create: if isGlobal() ||
+        (isApproved() && hasRole('secretario') && 
+         request.resource.data.zonaOrigen == getUserData().zona);
+      
+      // ACTUALIZACIÓN:
+      // - Admin/Inspector: pueden editar todo
+      // - Secretario: solo trámites de su zona
+      allow update: if isGlobal() ||
+        (isApproved() && hasRole('secretario') && 
+         resource.data.zonaOrigen == getUserData().zona);
+      
+      // ELIMINACIÓN (hard delete - no debería usarse, usar soft delete):
+      // Solo admin puede hacer hard delete
+      allow delete: if hasRole('admin');
+      
+      // ═══════════════════════════════════════════════
+      //  SUBCOLECCIÓN: historial
+      // ═══════════════════════════════════════════════
+      match /historial/{historialId} {
+        // Mismas reglas de lectura que el trámite padre
+        allow read: if isGlobal() ||
+          (isApproved() && (
+            get(/databases/$(database)/documents/tramites/$(tramiteId)).data.zonaOrigen == getUserData().zona ||
+            get(/databases/$(database)/documents/tramites/$(tramiteId)).data.zonaDestino == getUserData().zona
+          ));
+        
+        // Cualquier usuario aprobado puede crear entradas de historial
+        allow create: if isApproved();
+        
+        // El historial es inmutable - no se puede editar ni eliminar
+        allow update, delete: if false;
+      }
+    }
+  }
+}
